@@ -63,10 +63,14 @@ else
     exit 1
   fi
 
-  # 2. Check scopes (from response headers) — only valid for non-App tokens
+  # 2. Check scopes (from response headers) — only valid for non-App tokens.
+  # Fine-grained PATs never send an x-oauth-scopes header (not even empty),
+  # so the grep must not fail the pipeline under `set -o pipefail`: without
+  # the guard the script aborts silently before the REQUIRED_SCOPES check,
+  # which is the path every fine-grained token took.
   SCOPES_HEADER=$(curl -s -I \
     -H "Authorization: Bearer ${GH_TOKEN}" \
-    https://api.github.com/user | grep -i "x-oauth-scopes:" | cut -d: -f2- | tr -d ' \r')
+    https://api.github.com/user | { grep -i "x-oauth-scopes:" || true; } | cut -d: -f2- | tr -d ' \r')
 
   if [ -n "$REQUIRED_SCOPES" ]; then
     # Exact per-scope comparison: a substring match would let a required

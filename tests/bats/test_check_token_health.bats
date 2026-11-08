@@ -54,8 +54,14 @@ if [[ "\$*" == *" -o "* ]]; then
   cp "${AUTH_RESPONSE_FILE}" "\$out"
   printf '%s' "${http_code}"
 elif [[ "\$*" == *"-I"* ]] && [[ "\$url" == *"api.github.com/user"* ]]; then
-  # Headers request for scope check
-  printf 'HTTP/2 200\r\nx-oauth-scopes: ${scopes}\r\n\r\n'
+  # Headers request for scope check. An empty scopes value omits the header
+  # line entirely, matching real fine-grained PATs: GitHub never sends
+  # x-oauth-scopes for them, not even an empty one.
+  if [[ -n "${scopes}" ]]; then
+    printf 'HTTP/2 200\r\nx-oauth-scopes: ${scopes}\r\n\r\n'
+  else
+    printf 'HTTP/2 200\r\n\r\n'
+  fi
 elif [[ "\$url" == *"rate_limit"* ]]; then
   # Rate limit request
   printf '%s' '${rate_json}'
